@@ -1,15 +1,11 @@
-name: CI/CD Pipeline for AWS Deployment
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  # Continuous Integration & Deployment on Self-Hosted Runner (EC2)
   deploy:
     runs-on: self-hosted
 
@@ -17,35 +13,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run tests (if any)
-        run: |
-          echo "Running tests..."
-          # Add your test command here if you have tests
-          # pytest tests/
-
-      - name: Check code quality
-        run: |
-          echo "Checking code..."
-          # Add linting/formatting checks here if needed
-
       - name: Build Docker image
-        run: |
-          docker build -t source-code-analyzer:latest .
+        run: docker build -t source-code-analyzer:latest .
 
-      - name: Stop old container (if running)
-        run: |
-          docker stop source-code-analyzer || true
-          docker rm source-code-analyzer || true
+      - name: Stop old container
+        run: docker stop source-code-analyzer 2>/dev/null || true
+
+      - name: Remove old container
+        run: docker rm source-code-analyzer 2>/dev/null || true
 
       - name: Run new container
         env:
@@ -57,16 +32,6 @@ jobs:
             -p 5001:5001 \
             -e GOOGLE_API_KEY=$GOOGLE_API_KEY \
             source-code-analyzer:latest
-          
-          echo "Container started successfully!"
 
-      - name: Wait for container to be healthy
-        run: |
-          echo "Waiting for container to start..."
-          sleep 5
-          docker ps | grep source-code-analyzer && echo "✓ Container is running!"
-
-      - name: Verify deployment
-        run: |
-          echo "Checking if app is responsive..."
-          curl -s http://localhost:5001/ > /dev/null && echo "✓ App is responsive!" || echo "✗ App is not responding"
+      - name: Check container
+        run: sleep 3 && docker ps | grep source-code-analyzer
