@@ -11,7 +11,7 @@ on:
 jobs:
   # Continuous Integration - Build and test
   continuous-integration:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
@@ -78,7 +78,7 @@ jobs:
   continuous-deployment:
     needs: continuous-integration
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
