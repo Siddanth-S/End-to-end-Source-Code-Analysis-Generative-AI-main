@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css')}}"/>
+	<style>
+		@keyframes fadeInDown {
+			from {
+				opacity: 0;
+				transform: translateY(-30px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		@keyframes gradientFlow {
+			0% { background-position: 0% 50%; }
+			50% { background-position: 100% 50%; }
+			100% { background-position: 0% 50%; }
+		}
+
+		@keyframes glowPulse {
+			0% { box-shadow: 0 0 20px rgba(82, 172, 255, 0.3); }
+			50% { box-shadow: 0 0 40px rgba(82, 172, 255, 0.6); }
+			100% { box-shadow: 0 0 20px rgba(82, 172, 255, 0.3); }
+		}
+
+		@keyframes slideUp {
+			from {
+				opacity: 0;
+				transform: translateY(20px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		@keyframes float {
+			0%, 100% { transform: translateY(0px); }
+			50% { transform: translateY(-10px); }
+		}
+
+		body, html {
+			height: 100%;
+			margin: 0;
+			overflow-x: hidden;
+		}
+
+		.container-fluid.h-100 {
+			height: auto !important;
+			padding: 40px 20px;
+			min-height: 100vh;
+			animation: fadeInDown 0.8s ease-out;
+		}
+
+		.chat {
+			margin-top: 20px;
+			margin-bottom: 20px;
+		}
+
+		.card {
+			height: auto;
+			max-height: 90vh;
+			display: flex;
+			flex-direction: column;
+			border-radius: 20px !important;
+			background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(20,20,40,0.8));
+			backdrop-filter: blur(10px);
+			box-shadow: 0 15px 50px rgba(82, 172, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+			border: 1px solid rgba(82, 172, 255, 0.3);
+			animation: slideUp 0.8s ease-out 0.2s both;
+		}
+
+		.repo-section {
+			background: linear-gradient(135deg, rgba(82, 172, 255, 0.08), rgba(20,20,40,0.8));
+			padding: 35px;
+			border-radius: 18px;
+			margin-bottom: 40px;
+			border: 2px solid rgba(82, 172, 255, 0.4);
+			box-shadow: 0 8px 32px rgba(82, 172, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+			transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+			backdrop-filter: blur(10px);
+			animation: slideUp 0.8s ease-out both;
+		}
+
+		.repo-section:hover {
+			box-shadow: 0 20px 60px rgba(82, 172, 255, 0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+			transform: translateY(-5px);
+			border-color: rgba(82, 172, 255, 0.6);
+		}
+
+		.repo-section h5 {
+			color: #ffffff;
+			font-weight: 800;
+			margin-bottom: 20px;
+			font-size: 22px;
+			text-transform: uppercase;
+			letter-spacing: 2.5px;
+			background: linear-gradient(135deg, #52acff, #58cc71);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+
+		.repo-section .input-group {
+			margin-bottom: 15px;
+		}
+
+		.repo-section .form-control {
+			background-color: rgba(255,255,255,0.05) !important;
+			border: 2px solid rgba(82, 172, 255, 0.3) !important;
+			color: white !important;
+			padding: 16px 18px;
+			font-size: 15px;
+			transition: all 0.4s ease;
+			border-radius: 10px;
+			backdrop-filter: blur(10px);
+		}
+
+		.repo-section .form-control::placeholder {
+			color: rgba(255,255,255,0.4);
+		}
+
+		.repo-section .form-control:focus {
+			background-color: rgba(255,255,255,0.1) !important;
+			border-color: #52acff !important;
+			color: white !important;
+			box-shadow: 0 0 0 4px rgba(82, 172, 255, 0.3), inset 0 0 20px rgba(82, 172, 255, 0.1);
+			transform: scale(1.02);
+		}
+
+		#loadBtn {
+			background: linear-gradient(135deg, #52acff 0%, #3a8ccc 50%, #2a6caa 100%);
+			background-size: 200% 200%;
+			border: none;
+			color: white;
+			font-weight: 800;
+			padding: 16px 40px;
+			border-radius: 12px;
+			transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+			cursor: pointer;
+			font-size: 15px;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			box-shadow: 0 8px 25px rgba(82, 172, 255, 0.3);
+			position: relative;
+			overflow: hidden;
+		}
+
+		#loadBtn::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: -100%;
+			width: 100%;
+			height: 100%;
+			background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+			transition: left 0.5s ease;
+		}
+
+		#loadBtn:hover:not(:disabled) {
+			transform: translateY(-5px);
+			box-shadow: 0 15px 40px rgba(82, 172, 255, 0.5), 0 0 30px rgba(82, 172, 255, 0.3);
+			background-position: 100% 0;
+		}
+
+		#loadBtn:hover:not(:disabled)::before {
+			left: 100%;
+		}
+
+		#loadBtn:active:not(:disabled) {
+			transform: translateY(-2px);
+		}
+
+		#loadBtn:disabled {
+			background: rgba(82, 172, 255, 0.4);
+			cursor: not-allowed;
+			box-shadow: 0 4px 15px rgba(82, 172, 255, 0.2);
+		}
+
+		.loading-spinner {
+			display: none;
+			text-align: center;
+			padding: 30px;
+			background: linear-gradient(135deg, rgba(82, 172, 255, 0.1), rgba(0,0,0,0.3));
+			border-radius: 12px;
+			margin-top: 15px;
+			border: 1px solid rgba(82, 172, 255, 0.2);
+			animation: slideUp 0.4s ease-out;
+		}
+
+		.loading-spinner .spinner-border {
+			width: 50px;
+			height: 50px;
+			border-width: 4px;
+			animation: spin 1s linear infinite;
+		}
+
+		@keyframes spin {
+			to { transform: rotate(360deg); }
+		}
+
+		#loadingStatus {
+			color: #52acff;
+			margin-top: 15px;
+			font-weight: 700;
+			font-size: 14px;
+		}
+
+		#loadStatus {
+			margin-top: 15px;
+		}
+
+		#loadStatus .alert {
+			margin: 0;
+			padding: 18px 20px;
+			border-radius: 12px;
+			font-weight: 700;
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			animation: slideUp 0.4s ease-out;
+			border: 2px solid;
+		}
+
+		.alert-success {
+			background: linear-gradient(135deg, rgba(88, 204, 113, 0.15), rgba(0,0,0,0.3)) !important;
+			border-color: rgba(88, 204, 113, 0.6) !important;
+			color: #58cc71 !important;
+			box-shadow: 0 8px 25px rgba(88, 204, 113, 0.2);
+		}
+
+		.alert-danger {
+			background: linear-gradient(135deg, rgba(255, 107, 107, 0.15), rgba(0,0,0,0.3)) !important;
+			border-color: rgba(255, 107, 107, 0.6) !important;
+			color: #ff6b6b !important;
+			box-shadow: 0 8px 25px rgba(255, 107, 107, 0.2);
+		}
+
+		.card-header {
+			background: linear-gradient(135deg, rgba(82, 172, 255, 0.15), rgba(0,0,0,0.4));
+			border-radius: 20px 20px 0 0 !important;
+			border-bottom: 2px solid rgba(82, 172, 255, 0.3) !important;
+			padding: 28px;
+			backdrop-filter: blur(10px);
+		}
+
+		.card-header .img_cont {
+			animation: float 3s ease-in-out infinite;
+		}
+
+		.user_info span {
+			background: linear-gradient(135deg, #52acff, #58cc71);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+			font-weight: 800;
+			font-size: 22px;
+		}
+
+		.msg_card_body {
+			flex: 1;
+			overflow-y: auto;
+			min-height: 450px;
+			max-height: 650px;
+			padding: 28px;
+			background: linear-gradient(135deg, rgba(0,0,0,0.2), rgba(0,0,0,0.1));
+		}
+
+		.msg_card_body .d-flex {
+			animation: slideUp 0.5s ease-out;
+		}
+
+		.card-footer {
+			border-radius: 0 0 20px 20px !important;
+			border-top: 2px solid rgba(82, 172, 255, 0.3) !important;
+			background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(20,20,40,0.6));
+			padding: 20px;
+			backdrop-filter: blur(10px);
+		}
+
+		.type_msg {
+			background-color: rgba(255,255,255,0.06) !important;
+			border: 2px solid rgba(82, 172, 255, 0.3) !important;
+			color: white !important;
+			border-radius: 10px;
+			transition: all 0.3s ease;
+		}
+
+		.type_msg:focus {
+			box-shadow: 0 0 0 4px rgba(82, 172, 255, 0.3);
+			border-color: #52acff !important;
+			transform: scale(1.02);
+		}
+
+		.send_btn {
+			background: linear-gradient(135deg, #52acff, #3a8ccc);
+			border: none !important;
+			color: white !important;
+			border-radius: 10px;
+			transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+			cursor: pointer;
+		}
+
+		.send_btn:hover {
+			background: linear-gradient(135deg, #3a8ccc, #2a6caa);
+			box-shadow: 0 8px 25px rgba(82, 172, 255, 0.4);
+			transform: scale(1.05);
+		}
+
+		.send_btn:active {
+			transform: scale(0.98);
+		}
+
+		/* Scrollbar styling */
+		.msg_card_body::-webkit-scrollbar {
+			width: 12px;
+		}
+
+		.msg_card_body::-webkit-scrollbar-track {
+			background: rgba(0,0,0,0.3);
+			border-radius: 10px;
+		}
+
+		.msg_card_body::-webkit-scrollbar-thumb {
+			background: linear-gradient(135deg, rgba(82, 172, 255, 0.6), rgba(88, 204, 113, 0.4));
+			border-radius: 10px;
+			transition: all 0.3s ease;
+		}
+
+		.msg_card_body::-webkit-scrollbar-thumb:hover {
+			background: linear-gradient(135deg, rgba(82, 172, 255, 0.9), rgba(88, 204, 113, 0.7));
+		}
+
+		/* Message styling */
+		.msg_cotainer {
+			background: linear-gradient(135deg, rgba(82, 172, 255, 0.9), rgba(58, 140, 204, 0.8));
+			box-shadow: 0 8px 25px rgba(82, 172, 255, 0.3);
+			padding: 14px 18px;
+			border-radius: 20px;
+			animation: slideUp 0.4s ease-out;
+		}
+
+		.msg_cotainer_send {
+			background: linear-gradient(135deg, rgba(88, 204, 113, 0.9), rgba(76, 209, 55, 0.8));
+			box-shadow: 0 8px 25px rgba(88, 204, 113, 0.3);
+			padding: 14px 18px;
+			border-radius: 20px;
+			animation: slideUp 0.4s ease-out;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container-fluid h-100">
+		<div class="row justify-content-center">		
+			<div class="col-md-8 col-xl-6 chat">
+				<!-- Repository Loading Section -->
+				<div class="repo-section">
+					<h5>🚀 Load GitHub Repository</h5>
+					<div class="input-group">
+						<input type="text" id="repoUrl" placeholder="Paste GitHub URL (e.g., https://github.com/user/repo)" class="form-control">
+						<div class="input-group-append">
+							<button class="btn" id="loadBtn" type="button">Load Repository</button>
+						</div>
+					</div>
+					<div class="loading-spinner" id="loadingSpinner">
+						<div class="spinner-border text-primary" role="status">
+							<span class="sr-only">Loading...</span>
+						</div>
+						<p id="loadingStatus">Processing repository...</p>
+					</div>
+					<div id="loadStatus"></div>
+				</div>
+
+				<!-- Chat Card -->
+				<div class="card">
+					<!-- Chat Header -->
+					<div class="card-header msg_head">
+						<div class="d-flex bd-highlight">
+							<div class="img_cont">
+								<img src="https://p7.hiclipart.com/preview/1010/961/279/computer-icons-source-code-html-coding.jpg" class="rounded-circle user_img">
+								<span class="online_icon"></span>
+							</div>
+							<div class="user_info">
+								<span>Source Code Assistant</span>
+								<p>Ask anything about your loaded code!</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- Chat Messages -->
+					<div id="messageFormeight" class="card-body msg_card_body">
+						<div class="d-flex justify-content-start mb-4">
+							<div class="img_cont_msg">
+								<img src="https://p7.hiclipart.com/preview/1010/961/279/computer-icons-source-code-html-coding.jpg" class="rounded-circle user_img_msg">
+							</div>
+							<div class="msg_cotainer">
+								👋 Welcome! Start by loading a GitHub repository above, then ask me questions about the code.
+								<span class="msg_time">Just now</span>
+							</div>
+						</div>
+					</div>
+
+					<!-- Chat Input -->
+					<div class="card-footer">
+						<form id="messageArea" class="input-group">
+							<input type="text" id="text" name="msg" placeholder="Type your question..." autocomplete="off" class="form-control type_msg" disabled/>
+							<div class="input-group-append">
+								<button type="submit" id="send" class="input-group-text send_btn" disabled><i class="fas fa-location-arrow"></i></button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<script>
+		$(document).ready(function() {
+			// Load Repository
+			$("#loadBtn").click(function() {
+				const repoUrl = $("#repoUrl").val();
+				
+				if (!repoUrl) {
+					alert("Please enter a repository URL");
+					return;
+				}
+
+				$("#loadBtn").prop("disabled", true);
+				$("#loadingSpinner").show();
+				$("#loadStatus").html("");
+
+				$.ajax({
+					type: "POST",
+					url: "/load-repo",
+					contentType: "application/json",
+					data: JSON.stringify({repo_url: repoUrl}),
+					success: function(data) {
+						$("#loadingSpinner").hide();
+						$("#loadBtn").prop("disabled", false);
+						$("#loadStatus").html('<div class="alert alert-success"><i class="fas fa-check-circle"></i> ✓ Repository loaded successfully with ' + data.chunks + ' chunks!</div>');
+						
+						// Enable chat
+						$("#text").prop("disabled", false);
+						$("#send").prop("disabled", false);
+						$("#repoUrl").prop("disabled", true);
+						$("#loadBtn").prop("disabled", true);
+						$("#loadBtn").text("Repository Loaded ✓");
+						
+						// Add welcome message
+						var botHtml = '<div class="d-flex justify-content-start mb-4"><div class="img_cont_msg"><img src="https://p7.hiclipart.com/preview/1010/961/279/computer-icons-source-code-html-coding.jpg" class="rounded-circle user_img_msg"></div><div class="msg_cotainer">Repository is ready! Ask me anything about the code.<span class="msg_time">Just now</span></div></div>';
+						$("#messageFormeight").append($.parseHTML(botHtml));
+						$("#messageFormeight").scrollTop($("#messageFormeight")[0].scrollHeight);
+						$("#text").focus();
+					},
+					error: function(xhr) {
+						$("#loadingSpinner").hide();
+						$("#loadBtn").prop("disabled", false);
+						const response = xhr.responseJSON;
+						$("#loadStatus").html('<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ' + (response.error || "Unknown error") + '</div>');
+					}
+				});
+			});
+
+			// Chat Message
+			$("#messageArea").on("submit", function(event) {
+				const date = new Date();
+				const hour = date.getHours();
+				const minute = date.getMinutes();
+				const str_time = hour+":"+minute;
+				var rawText = $("#text").val();
+
+				if (!rawText.trim()) {
+					event.preventDefault();
+					return;
+				}
+
+				var userHtml = '<div class="d-flex justify-content-end mb-4"><div class="msg_cotainer_send">' + rawText + '<span class="msg_time_send">'+ str_time + '</span></div><div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div></div>';
+				
+				$("#text").val("");
+				$("#messageFormeight").append(userHtml);
+				$("#messageFormeight").scrollTop($("#messageFormeight")[0].scrollHeight);
+
+				$.ajax({
+					data: {
+						msg: rawText,	
+					},
+					type: "POST",
+					url: "/get",
+				}).done(function(data) {
+					var botHtml = '<div class="d-flex justify-content-start mb-4"><div class="img_cont_msg"><img src="https://p7.hiclipart.com/preview/1010/961/279/computer-icons-source-code-html-coding.jpg" class="rounded-circle user_img_msg"></div><div class="msg_cotainer">' + data + '<span class="msg_time">' + str_time + '</span></div></div>';
+					$("#messageFormeight").append($.parseHTML(botHtml));
+					$("#messageFormeight").scrollTop($("#messageFormeight")[0].scrollHeight);
+				}).fail(function(error) {
+					var errorHtml = '<div class="d-flex justify-content-start mb-4"><div class="img_cont_msg"><img src="https://p7.hiclipart.com/preview/1010/961/279/computer-icons-source-code-html-coding.jpg" class="rounded-circle user_img_msg"></div><div class="msg_cotainer" style="background-color: #ff6b6b; color: white;">❌ Error: Could not process your question. Please try again.<span class="msg_time">' + str_time + '</span></div></div>';
+					$("#messageFormeight").append($.parseHTML(errorHtml));
+					$("#messageFormeight").scrollTop($("#messageFormeight")[0].scrollHeight);
+				});
+				event.preventDefault();
+			});
+		});
+	</script>
+
+</body>
+</html>
+
