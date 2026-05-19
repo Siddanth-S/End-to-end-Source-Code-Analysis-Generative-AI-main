@@ -1,4 +1,4 @@
-name: CI/CD Pipeline with ECR
+name: CI/CD Pipeline
 
 on:
   push:
@@ -10,65 +10,44 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Pull latest code
+        run: |
+          cd /home/ubuntu/source-code-analyzer || mkdir -p /home/ubuntu/source-code-analyzer
+          cd /home/ubuntu/source-code-analyzer
+          git init
+          git remote remove origin 2>/dev/null || true
+          git remote add origin https://github.com/Siddanth-S/End-to-end-Source-Code-Analysis-Generative-AI-main.git
+          git fetch origin main
+          git checkout -f origin/main
 
       - name: Build Docker image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
-          IMAGE_TAG: latest
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          cd /home/ubuntu/source-code-analyzer
+          docker build -t source-code-analyzer:latest .
 
       - name: Push to ECR
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
-          IMAGE_TAG: latest
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          ECR_REPO: ${{ secrets.ECR_REPO }}
         run: |
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+          docker tag source-code-analyzer:latest $(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO:latest
+          docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO:latest
 
-      - name: Stop old container
-        run: docker stop source-code-analyzer 2>/dev/null || true
-
-      - name: Remove old container
-        run: docker rm source-code-analyzer 2>/dev/null || true
-
-      - name: Pull latest image from ECR
+      - name: Deploy container
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
-          IMAGE_TAG: latest
-        run: |
-          docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      - name: Run container from ECR image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
-          IMAGE_TAG: latest
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          ECR_REPO: ${{ secrets.ECR_REPO }}
         run: |
-          docker run -d \
-            --name source-code-analyzer \
-            --restart always \
-            -p 5001:5001 \
-            -e GOOGLE_API_KEY=$GOOGLE_API_KEY \
-            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      - name: Verify deployment
-        run: |
-          sleep 3
-          docker ps | grep source-code-analyzer && echo "✓ Deployment successful!"
+          docker stop source-code-analyzer 2>/dev/null || true
+          docker rm source-code-analyzer 2>/dev/null || true
+          aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+          docker pull $(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO:latest
+          docker run -d --name source-code-analyzer --restart always -p 5001:5001 -e GOOGLE_API_KEY=$GOOGLE_API_KEY $(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO:latest
+          sleep 2
+          docker ps | grep source-code-analyzer
