@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline with ECR
 
 on:
   push:
@@ -13,8 +13,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build Docker image
-        run: docker build -t source-code-analyzer:latest .
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+      - name: Push to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
+          IMAGE_TAG: latest
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Stop old container
         run: docker stop source-code-analyzer 2>/dev/null || true
@@ -22,8 +46,19 @@ jobs:
       - name: Remove old container
         run: docker rm source-code-analyzer 2>/dev/null || true
 
-      - name: Run new container
+      - name: Pull latest image from ECR
         env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
+          IMAGE_TAG: latest
+        run: |
+          docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Run container from ECR image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPO }}
+          IMAGE_TAG: latest
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           docker run -d \
@@ -31,7 +66,9 @@ jobs:
             --restart always \
             -p 5001:5001 \
             -e GOOGLE_API_KEY=$GOOGLE_API_KEY \
-            source-code-analyzer:latest
+            $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Check container
-        run: sleep 3 && docker ps | grep source-code-analyzer
+      - name: Verify deployment
+        run: |
+          sleep 3
+          docker ps | grep source-code-analyzer && echo "✓ Deployment successful!"
