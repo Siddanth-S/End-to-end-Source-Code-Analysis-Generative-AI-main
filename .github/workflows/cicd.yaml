@@ -20,21 +20,6 @@ jobs:
           git fetch origin main
           git checkout -f origin/main
 
-      - name: Install AWS CLI v2
-        run: |
-          set -ex
-          echo "=== Installing unzip ==="
-          sudo apt-get update && sudo apt-get install -y unzip
-          cd /tmp
-          echo "=== Downloading AWS CLI v2 ==="
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
-          unzip -o awscliv2.zip
-          echo "=== Installing AWS CLI v2 ==="
-          sudo /tmp/aws/install --update
-          echo "=== Verifying AWS CLI installation ==="
-          /usr/local/bin/aws --version
-          echo "=== AWS CLI installed successfully ==="
-
       - name: Build Docker image
         run: |
           cd /home/ubuntu/source-code-analyzer
