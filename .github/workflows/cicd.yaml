@@ -22,15 +22,16 @@ jobs:
 
       - name: Install AWS CLI v2
         run: |
-          set -x
+          set -ex
           cd /tmp
-          curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip -q awscliv2.zip
-          sudo ./aws/install --update
-          cd /
-          rm -rf /tmp/awscliv2.zip /tmp/aws
-          which aws
-          aws --version
+          echo "=== Downloading AWS CLI v2 ==="
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
+          unzip -o awscliv2.zip
+          echo "=== Installing AWS CLI v2 ==="
+          sudo /tmp/aws/install --update
+          echo "=== Verifying AWS CLI installation ==="
+          /usr/local/bin/aws --version
+          echo "=== AWS CLI installed successfully ==="
 
       - name: Build Docker image
         run: |
@@ -44,11 +45,9 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
           echo "Checking AWS CLI..."
-          aws --version
+          /usr/local/bin/aws --version
           echo "Checking AWS credentials..."
-          aws sts get-caller-identity
-          echo "Checking ECR login..."
-          aws ecr get-login-password --region $AWS_DEFAULT_REGION || echo "ECR login failed!"
+          /usr/local/bin/aws sts get-caller-identity
 
       - name: Push to ECR
         env:
@@ -58,10 +57,10 @@ jobs:
           ECR_REPO: ${{ secrets.ECR_REPO }}
         run: |
           set -e
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ACCOUNT_ID=$(/usr/local/bin/aws sts get-caller-identity --query Account --output text)
           ECR_URI="$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
           echo "ECR URI: $ECR_URI"
-          aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
+          /usr/local/bin/aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
           docker tag source-code-analyzer:latest $ECR_URI/$ECR_REPO:latest
           docker push $ECR_URI/$ECR_REPO:latest
 
@@ -75,11 +74,11 @@ jobs:
         run: |
           set -e
           cd /home/ubuntu/source-code-analyzer
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ACCOUNT_ID=$(/usr/local/bin/aws sts get-caller-identity --query Account --output text)
           ECR_URI="$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
           docker stop source-code-analyzer 2>/dev/null || true
           docker rm source-code-analyzer 2>/dev/null || true
-          aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
+          /usr/local/bin/aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
           docker pull $ECR_URI/$ECR_REPO:latest
           docker run -d --name source-code-analyzer --restart always -p 5001:5001 -e GOOGLE_API_KEY=$GOOGLE_API_KEY $ECR_URI/$ECR_REPO:latest
           sleep 2
