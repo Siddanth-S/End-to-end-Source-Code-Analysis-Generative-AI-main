@@ -32,9 +32,9 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
           echo "Checking AWS CLI..."
-          /usr/local/bin/aws --version
+          aws --version
           echo "Checking AWS credentials..."
-          /usr/local/bin/aws sts get-caller-identity
+          aws sts get-caller-identity
 
       - name: Push to ECR
         env:
@@ -44,10 +44,10 @@ jobs:
           ECR_REPO: ${{ secrets.ECR_REPO }}
         run: |
           set -e
-          ACCOUNT_ID=$(/usr/local/bin/aws sts get-caller-identity --query Account --output text)
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           ECR_URI="$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
           echo "ECR URI: $ECR_URI"
-          /usr/local/bin/aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
+          aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
           docker tag source-code-analyzer:latest $ECR_URI/$ECR_REPO:latest
           docker push $ECR_URI/$ECR_REPO:latest
 
@@ -61,11 +61,11 @@ jobs:
         run: |
           set -e
           cd /home/ubuntu/source-code-analyzer
-          ACCOUNT_ID=$(/usr/local/bin/aws sts get-caller-identity --query Account --output text)
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           ECR_URI="$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
           docker stop source-code-analyzer 2>/dev/null || true
           docker rm source-code-analyzer 2>/dev/null || true
-          /usr/local/bin/aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
+          aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URI
           docker pull $ECR_URI/$ECR_REPO:latest
           docker run -d --name source-code-analyzer --restart always -p 5001:5001 -e GOOGLE_API_KEY=$GOOGLE_API_KEY $ECR_URI/$ECR_REPO:latest
           sleep 2
